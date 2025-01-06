@@ -1,59 +1,51 @@
+import uuid
+
 from django.db import models
 from django.contrib.auth.models import User
 
 
 class Quiz(models.Model):
-    title: str = models.CharField(max_length=255, verbose_name="Title")
-    description: str = models.TextField(blank=True, verbose_name="Description")
-    creator: User = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="quizzes",
-        verbose_name="Creator",
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    image = models.ImageField(upload_to="quiz_images/", blank=True, null=True)
+    creator = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="quizzes"
     )
-    is_public: bool = models.BooleanField(
-        default=False, verbose_name="Public quiz"
-    )
-    created_at: models.DateTimeField = models.DateTimeField(
-        auto_now_add=True, verbose_name="Created at"
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_public = models.BooleanField(default=True)
+    invited_users = models.ManyToManyField(
+        User, related_name="invited_quizzes", blank=True
     )
 
-    def __str__(self) -> str:
-        return self.title
+    def __str__(self):
+        return self.name
 
 
 class Question(models.Model):
-    quiz: Quiz = models.ForeignKey(
-        Quiz,
-        on_delete=models.CASCADE,
-        related_name="questions",
-        verbose_name="Quiz",
+    quiz = models.ForeignKey(
+        Quiz, on_delete=models.CASCADE, related_name="questions"
     )
-    text: str = models.TextField(
-        blank=False, null=False, verbose_name="Question text"
+    text = models.TextField()
+    image = models.ImageField(
+        upload_to="question_images/", blank=True, null=True
     )
-    image: models.ImageField = models.ImageField(
-        upload_to="question_images/",
-        blank=True,
-        null=True,
-        verbose_name="Image",
-    )
+    order = models.PositiveIntegerField(default=0)
 
-    def __str__(self) -> str:
-        return self.text
+    class Meta:
+        ordering = ["order"]
+
+    def __str__(self):
+        return f"Question {self.order} - {self.text[:50]}"
 
 
 class Answer(models.Model):
-    question: Question = models.ForeignKey(
-        Question,
-        on_delete=models.CASCADE,
-        related_name="answers",
-        verbose_name="Question",
+    question = models.ForeignKey(
+        Question, on_delete=models.CASCADE, related_name="answers"
     )
-    text: str = models.CharField(max_length=255, verbose_name="Answer text")
-    is_correct: bool = models.BooleanField(
-        default=False, verbose_name="Correct answer"
-    )
+    text = models.CharField(max_length=255)
+    is_correct = models.BooleanField(default=False)
 
-    def __str__(self) -> str:
-        return self.text
+    def __str__(self):
+        return f"{self.text} (Correct: {self.is_correct})"
